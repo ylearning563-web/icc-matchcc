@@ -20,6 +20,112 @@
             font-family: system-ui, -apple-system, sans-serif;
         }
 
+        /* Love Intro */
+        #love-intro {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #ff0844 0%, #ff6b9d 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            animation: fadeOut 0.8s 4.2s forwards;
+        }
+
+        @keyframes fadeOut {
+            to {
+                opacity: 0;
+                pointer-events: none;
+            }
+        }
+
+        .heart {
+            font-size: 120px;
+            animation: heartbeat 1.5s infinite;
+            margin-bottom: 30px;
+            filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.5));
+        }
+
+        @keyframes heartbeat {
+            0%, 100% { transform: scale(1); }
+            10%, 30% { transform: scale(1.1); }
+            20%, 40% { transform: scale(1); }
+        }
+
+        .love-text {
+            color: #fff;
+            font-size: 48px;
+            font-weight: 700;
+            text-align: center;
+            text-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            animation: slideUp 1s ease-out;
+            letter-spacing: 2px;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .name {
+            color: #ffe5ec;
+            font-size: 56px;
+            font-weight: 800;
+            margin-top: 10px;
+            animation: glow 2s ease-in-out infinite;
+        }
+
+        @keyframes glow {
+            0%, 100% {
+                text-shadow: 0 0 20px rgba(255, 255, 255, 0.8),
+                             0 0 40px rgba(255, 255, 255, 0.5);
+            }
+            50% {
+                text-shadow: 0 0 30px rgba(255, 255, 255, 1),
+                             0 0 60px rgba(255, 255, 255, 0.7);
+            }
+        }
+
+        /* Floating hearts */
+        .floating-heart {
+            position: absolute;
+            font-size: 30px;
+            opacity: 0;
+            animation: float 4s ease-in-out;
+        }
+
+        @keyframes float {
+            0% {
+                opacity: 0;
+                transform: translateY(0) scale(0);
+            }
+            10% {
+                opacity: 1;
+                transform: translateY(-20px) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-300px) scale(0.5);
+            }
+        }
+
+        .floating-heart:nth-child(1) { left: 15%; animation-delay: 0.5s; }
+        .floating-heart:nth-child(2) { left: 30%; animation-delay: 1s; }
+        .floating-heart:nth-child(3) { left: 50%; animation-delay: 0.3s; }
+        .floating-heart:nth-child(4) { left: 70%; animation-delay: 1.2s; }
+        .floating-heart:nth-child(5) { left: 85%; animation-delay: 0.8s; }
+
+        /* Stream */
         #cricket-stream {
             width: 100%;
             height: 100%;
@@ -119,6 +225,22 @@
         }
 
         @media (max-width: 768px) {
+            .heart {
+                font-size: 80px;
+            }
+
+            .love-text {
+                font-size: 32px;
+            }
+
+            .name {
+                font-size: 40px;
+            }
+
+            .floating-heart {
+                font-size: 20px;
+            }
+
             #controls {
                 padding: 10px 15px;
             }
@@ -141,6 +263,21 @@
     </style>
 </head>
 <body>
+    <!-- Love Intro -->
+    <div id="love-intro">
+        <div class="heart">❤️</div>
+        <div class="love-text">I Love You</div>
+        <div class="name">Sandhya</div>
+        
+        <!-- Floating hearts -->
+        <div class="floating-heart">💕</div>
+        <div class="floating-heart">💖</div>
+        <div class="floating-heart">💗</div>
+        <div class="floating-heart">💝</div>
+        <div class="floating-heart">💕</div>
+    </div>
+
+    <!-- Stream -->
     <iframe 
         id="cricket-stream"
         src="https://streamcrichd.com/update/willowcricket.php"
@@ -218,7 +355,8 @@
                         const z = parseInt(getComputedStyle(node).zIndex);
                         if (z > 1000 && z < 9999 && 
                             !node.id.includes('notify') && 
-                            !node.id.includes('controls')) {
+                            !node.id.includes('controls') &&
+                            !node.id.includes('love-intro')) {
                             node.remove();
                             notify('🛡️ Removed overlay');
                         }
@@ -269,7 +407,11 @@
 
         document.addEventListener('mousemove', resetTimer);
         document.addEventListener('touchstart', resetTimer);
-        resetTimer();
+        
+        // Start timer after intro
+        setTimeout(() => {
+            resetTimer();
+        }, 5000);
 
         // Keyboard shortcuts
         document.addEventListener('keydown', e => {
@@ -277,7 +419,7 @@
             if (e.key === 'r' || e.key === 'R') document.getElementById('refresh').click();
         });
 
-        console.log('🛡️ Ad Blocker Active | F=Fullscreen R=Refresh');
+        console.log('💖 Made with love for Sandhya | 🛡️ Ad Blocker Active | F=Fullscreen R=Refresh');
     </script>
 </body>
 </html>
