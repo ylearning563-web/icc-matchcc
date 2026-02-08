@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Cricket</title>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+
+        #cricket-stream {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+        }
+
+        #controls {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            opacity: 1;
+            transition: opacity 0.3s;
+        }
+
+        #controls.hide {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .left, .right {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .badge {
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .live {
+            background: #ff0000;
+            color: #fff;
+        }
+
+        .protected {
+            background: #00ff00;
+            color: #000;
+        }
+
+        button {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        #notify {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #00ff00;
+            color: #000;
+            padding: 12px 20px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            display: none;
+            z-index: 9999;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        #notify.show {
+            display: block;
+            animation: slideIn 0.3s;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(400px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @media (max-width: 768px) {
+            #controls {
+                padding: 10px 15px;
+            }
+            
+            button {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+            
+            .badge {
+                font-size: 10px;
+                padding: 5px 10px;
+            }
+        }
+
+        body {
+            -webkit-user-select: none;
+            user-select: none;
+        }
+    </style>
+</head>
+<body>
+    <iframe 
+        id="cricket-stream"
+        src="https://streamcrichd.com/update/willowcricket.php"
+        allowfullscreen
+        allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+        sandbox="allow-same-origin allow-scripts allow-forms allow-presentation"
+        referrerpolicy="no-referrer">
+    </iframe>
+
+    <div id="controls">
+        <div class="left">
+            <span class="badge live">● LIVE</span>
+            <span class="badge protected">🛡️ PROTECTED</span>
+        </div>
+        <div class="right">
+            <button id="refresh">🔄</button>
+            <button id="fullscreen">⛶</button>
+        </div>
+    </div>
+
+    <div id="notify"></div>
+
+    <script>
+        // === AD BLOCKER ===
+        let blocked = 0;
+
+        // Block popups
+        window.open = () => {
+            blocked++;
+            notify(`Blocked popup #${blocked}`);
+            return null;
+        };
+
+        Object.defineProperty(window, 'open', {
+            value: () => { blocked++; notify(`Blocked #${blocked}`); return null; },
+            writable: false,
+            configurable: false
+        });
+
+        // Block redirects
+        document.addEventListener('click', e => {
+            const link = e.target.closest('a');
+            if (link && (link.target === '_blank' || link.href)) {
+                e.preventDefault();
+                e.stopPropagation();
+                notify('🛡️ Blocked redirect');
+                return false;
+            }
+        }, true);
+
+        // Block rapid clicks
+        let lastClick = 0;
+        document.addEventListener('mousedown', e => {
+            const now = Date.now();
+            if (now - lastClick < 300 && !e.target.closest('#controls')) {
+                e.preventDefault();
+                e.stopPropagation();
+                notify('🛡️ Blocked spam click');
+                return false;
+            }
+            lastClick = now;
+        }, true);
+
+        // Disable dialogs
+        window.alert = window.confirm = window.prompt = () => {};
+
+        // Block context menu
+        document.addEventListener('contextmenu', e => e.preventDefault());
+
+        // Remove ad elements
+        new MutationObserver(mutations => {
+            mutations.forEach(m => {
+                m.addedNodes.forEach(node => {
+                    if (node.nodeType === 1) {
+                        const z = parseInt(getComputedStyle(node).zIndex);
+                        if (z > 1000 && z < 9999 && 
+                            !node.id.includes('notify') && 
+                            !node.id.includes('controls')) {
+                            node.remove();
+                            notify('🛡️ Removed overlay');
+                        }
+                        if (node.tagName === 'IFRAME' && node.id !== 'cricket-stream') {
+                            node.remove();
+                            notify('🛡️ Blocked iframe');
+                        }
+                    }
+                });
+            });
+        }).observe(document.body, { childList: true, subtree: true });
+
+        // Block messages
+        window.addEventListener('message', e => {
+            if (e.origin !== window.location.origin) e.stopImmediatePropagation();
+        }, true);
+
+        // === UI ===
+        const controls = document.getElementById('controls');
+        const notifyEl = document.getElementById('notify');
+
+        function notify(msg) {
+            notifyEl.textContent = msg;
+            notifyEl.classList.add('show');
+            setTimeout(() => notifyEl.classList.remove('show'), 2500);
+        }
+
+        document.getElementById('refresh').onclick = () => {
+            const src = cricket.src;
+            cricket.src = '';
+            setTimeout(() => cricket.src = src, 100);
+            notify('Refreshing...');
+        };
+
+        document.getElementById('fullscreen').onclick = () => {
+            document.fullscreenElement ? 
+                document.exitFullscreen() : 
+                document.documentElement.requestFullscreen();
+        };
+
+        // Auto-hide controls
+        let timer;
+        const resetTimer = () => {
+            controls.classList.remove('hide');
+            clearTimeout(timer);
+            timer = setTimeout(() => controls.classList.add('hide'), 4000);
+        };
+
+        document.addEventListener('mousemove', resetTimer);
+        document.addEventListener('touchstart', resetTimer);
+        resetTimer();
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', e => {
+            if (e.key === 'f' || e.key === 'F') document.getElementById('fullscreen').click();
+            if (e.key === 'r' || e.key === 'R') document.getElementById('refresh').click();
+        });
+
+        console.log('🛡️ Ad Blocker Active | F=Fullscreen R=Refresh');
+    </script>
+</body>
+</html>
